@@ -22,9 +22,19 @@ class HandoffBriefBuilder:
         - Keep this domain-specific prompt logic in this builder class,
           not in the reusable AI client.
         """
-        # TODO: Validate notes.
-        # TODO: Build and return a prompt for a new handoff brief.
-        pass
+        if not notes or not notes.strip():
+            raise ValueError("Shift notes cannot be empty")
+
+        sections = "\n".join(self.REQUIRED_SECTIONS)
+
+        return (
+            "You are helping a store manager write a shift handoff brief.\n"
+            "Turn the shift notes below into a brief using exactly these section labels:\n"
+            f"{sections}\n\n"
+            "Only use information from the shift notes. Do not invent details.\n"
+            'If a detail is not provided, write "Unknown".\n\n'
+            f"Shift notes:\n{notes.strip()}"
+        )
 
     def build_revision_prompt(self, feedback):
         """
@@ -37,9 +47,19 @@ class HandoffBriefBuilder:
         - Include every required section label from REQUIRED_SECTIONS.
         - Tell the model not to invent unsupported details.
         """
-        # TODO: Validate feedback.
-        # TODO: Build and return a revision prompt.
-        pass
+        if not feedback or not feedback.strip():
+            raise ValueError("Revision feedback cannot be empty")
+
+        sections = "\n".join(self.REQUIRED_SECTIONS)
+
+        return (
+            "Revise the previous shift handoff brief from earlier in this conversation.\n"
+            f"Manager feedback:\n{feedback.strip()}\n\n"
+            "Keep using exactly these section labels:\n"
+            f"{sections}\n\n"
+            "Only use information from the original shift notes and this feedback. "
+            "Do not invent details."
+        )
 
     def is_usable_brief(self, response_text):
         """
@@ -50,8 +70,10 @@ class HandoffBriefBuilder:
         - Return True only when the response contains every required section label.
         - Return False if one or more required sections are missing.
         """
-        # TODO: Check whether response_text contains all required sections.
-        pass
+        if not response_text or not response_text.strip():
+            return False
+
+        return all(section in response_text for section in self.REQUIRED_SECTIONS)
 
     def format_brief(self, response_text):
         """
@@ -62,8 +84,7 @@ class HandoffBriefBuilder:
         - Add a clear user-facing heading before the response text.
         - Preserve the AI response content.
         """
-        # TODO: Return a formatted created-brief string.
-        pass
+        return f"\nShift Handoff Brief\n{response_text}"
 
     def create_brief(self, ai_client, notes):
         """
@@ -76,11 +97,13 @@ class HandoffBriefBuilder:
         - Raise RuntimeError if the AI response is not usable.
         - Return a formatted user-facing brief.
         """
-        # TODO: Build the prompt.
-        # TODO: Send the prompt through the AI client.
-        # TODO: Verify the response structure.
-        # TODO: Return the formatted brief.
-        pass
+        prompt = self.build_brief_prompt(notes)
+        response_text = ai_client.send(prompt)
+
+        if not self.is_usable_brief(response_text):
+            raise RuntimeError("AI response did not include required sections.")
+
+        return self.format_brief(response_text)
 
     def revise_brief(self, ai_client, feedback):
         """
@@ -93,8 +116,12 @@ class HandoffBriefBuilder:
         - Raise RuntimeError if the AI response is not usable.
         - Return a formatted user-facing revised brief.
         """
-        # TODO: Build the revision prompt.
-        # TODO: Send the prompt through the AI client.
-        # TODO: Verify the response structure.
-        # TODO: Return the formatted revised brief.
+        prompt = self.build_revision_prompt(feedback)
+        response_text = ai_client.send(prompt)
+
+        if not self.is_usable_brief(response_text):
+            raise RuntimeError("AI response did not include required sections.")
+
+        return f"\nRevised Shift Handoff Brief\n{response_text}"
+
         pass
